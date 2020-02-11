@@ -118,7 +118,6 @@ class LockedForSwap(Resource):
         return helpers.get_data_by_key(address=contract_addresses.get('neutrino_contract_address'),
                                        key='balance_lock_neutrino').get('value') / (10 ** asset_decimals)
 
-
 @api.route('/deficit_per_cent')
 class DeficitPerCent(Resource):
     def get(self):
@@ -127,26 +126,55 @@ class DeficitPerCent(Resource):
         return -1 * (deficit.get() / total_issued.get()) * 100
 
 
-# @api.route('/total_bonds_rest')
-# class DeficitPerCent(Resource):
-#     def get(self):
-#         url = 'https://beta.neutrino.at/api/v1/bonds/usd-nb_usd-n/orders'
-#
-#         bonds_list = helpers.get_json(url)
-#         print(bonds_list)
-#
-#         return 1
-#
-# @api.route('/total_bonds_liquidation')
-# class DeficitPerCent(Resource):
-#     def get(self):
-#         url = 'https://beta.neutrino.at/api/v1/liquidate/usd-nb_usd-n/orders'
-#
-#         bonds_list = helpers.get_json(url)
-#         print(bonds_list)
-#
-#         return 1
+@api.route('/total_bonds_rest')
+class TotalBondsRest(Resource):
+    def get(self):
+        url = 'https://beta.neutrino.at/api/v1/bonds/usd-nb_usd-n/orders'
 
+        bonds_list = helpers.get_json(url)
+
+        rest_amount = 0
+        for i in bonds_list:
+            print(i)
+            rest_amount += i.get('restAmount')
+
+        return rest_amount
+
+@api.route('/total_bonds_liquidation')
+class TotalBondsLiquidation(Resource):
+    def get(self):
+        url = 'https://beta.neutrino.at/api/v1/liquidate/usd-nb_usd-n/orders'
+
+        bonds_list = helpers.get_json(url)
+
+
+        rest_amount = 0
+        for i in bonds_list:
+            print(i)
+            rest_amount += i.get('restTotal')
+
+        return rest_amount
+
+# @api.route('/bond_liquidation_price')
+# class BondLiquidationPrice(Resource):
+#     def get(self):
+#         total_issued = TotalIssued()
+#         balance = Balance()
+#         price = Price()
+#
+#         balance_lock_waves = helpers.get_data_by_key(address=contract_addresses.get('neutrino_contract_address'),
+#                                                      key='balance_lock_waves').get('value') / (10 ** asset_decimals)
+#
+#         reserve = balance.get() - balance_lock_waves
+#         price = price.get()
+#
+#         print(total_issued.get(), reserve, price)
+#
+#         while (total_issued.get() < reserve*price):
+#
+#             price += 0.01
+#
+#         return price
 
 if __name__ == '__main__':
     app.run(debug=True)
