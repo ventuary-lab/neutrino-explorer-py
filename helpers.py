@@ -1,23 +1,26 @@
+#!/usr/bin/python3
 import pywaves as pw
 import requests
+
+default_node = pw.NODE
 
 # Helpers
 def convert_to_waves(x):
     return x / 10 ** 8
 
-def get_data_by_key(address, key, node_url=pw.NODE):
+def get_data_by_key(address, key, node_url=default_node):
     return requests.get(f'{node_url}/addresses/data/{address}/{key}').json()
 
-def get_asset_quantity(asset_id, node_url=pw.NODE):
+def get_asset_quantity(asset_id, node_url=default_node):
     return requests.get(f'{node_url}/assets/details/{asset_id}').json().get('quantity')
 
-def get_account_data(address, node_url=pw.NODE):
+def get_account_data(address, node_url=default_node):
     return requests.get(f'{node_url}/addresses/data/{address}').json()
 
-def get_waves_balance(address, node_url=pw.NODE):
+def get_waves_balance(address, node_url=default_node):
     return requests.get(f'{node_url}/addresses/balance/{address}').json().get('balance')
 
-def get_asset_balance(address, asset_id, node_url=pw.NODE):
+def get_asset_balance(address, asset_id, node_url=default_node):
     return requests.get(f'{node_url}/assets/balance/{address}/{asset_id}').json().get('balance')
 
 def get_waves_locked_balance(auction_contract_address):
@@ -25,7 +28,7 @@ def get_waves_locked_balance(auction_contract_address):
     waves_locked_balance = auction_account_data.get('balance_lock_waves').value/100
     return waves_locked_balance
 
-def get_decimals(asset_id, node_url=pw.NODE):
+def get_decimals(asset_id, node_url=default_node):
     return requests.get(f'{node_url}/assets/details/{asset_id}').json().get('decimals')
 
 def filter_dict_by_key(key, account_data):
@@ -39,3 +42,8 @@ def filter_dict_by_key(key, account_data):
 
 def get_json(url):
     return requests.get(url).json()
+
+def get_transactions(address, node_url=default_node):
+    return requests.get(f'{node_url}/transactions/address/{address}/limit/99').json()
+
+

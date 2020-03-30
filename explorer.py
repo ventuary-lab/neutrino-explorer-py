@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from flask import Flask
 from flask_restx import Api, Resource
 import helpers as helpers
@@ -40,7 +41,6 @@ class Balance(Resource):
 @api.route('/total_issued')
 class TotalIssued(Resource):
     def get(self):
-        # asset_quantity = helpers.get_asset_quantity(asset_id=asset_ids.get('neutrino_asset_id'))
         neutrino_balance = helpers.get_asset_balance(address=contract_addresses.get('neutrino_contract_address'),
                                                      asset_id=asset_ids.get('neutrino_asset_id')) / (
                                        10 ** asset_decimals)
@@ -64,46 +64,50 @@ class Staked(Resource):
 @api.route('/annual_yield')
 class AnnualYield(Resource):
     def get(self):
-        monetaryConstant = 6.85
-        leasingShare = 0.9
-        nodePerfLagCoefficient = 0.98
-        staked = Staked()
-        total_issued = TotalIssued()
-        stakingShare = staked.get() / total_issued.get()
+        average_days = 14
+        staking_address = "3P5X7AFNSTjcVoYLXkgRNTqmp51QcWAVESX"
+        tx_data = helpers.get_transactions(staking_address)[0]
+        filtered_tx_rewards = [obj['transfers'][0]['amount'] for obj in tx_data if obj.get('sender') ==
+                            '3PLosK1gb6GpN5vV7ZyiCdwRWizpy2H31KR'][0:average_days]
 
-        return (nodePerfLagCoefficient * leasingShare * monetaryConstant / stakingShare);
+        annual_yield = 365.5*(sum(filtered_tx_rewards)/average_days)/10**6
+        return annual_yield
+
+
+@api.route('/annual_yield_analytical')
+class AnnualYieldAnalytical(Resource):
+    def get(self):
+        monetary_constant = 6.85
+        leasing_share = 0.9
+        node_performance = 0.98
+        staked = Staked().get()
+        total_issued = TotalIssued().get()
+        staking_share = staked / total_issued
+        deficit_per_cent = DeficitPerCent().get()
+        deficit_coefficient = 1+(deficit_per_cent*0.01)
+
+        return deficit_coefficient * node_performance * leasing_share * monetary_constant / staking_share
 
 
 @api.route('/circulating_supply')
 class CirculatingSupply(Resource):
     def get(self):
-        total_issued = TotalIssued()
-        staked = Staked()
-        return total_issued.get() - staked.get()
-
-
-@api.route('/circulating_supply_no_dec')
-class CirculatingSupplyNoDec(Resource):
-    def get(self):
-        staked = Staked()
-        total_issued = TotalIssued()
-        return (total_issued.get() - staked.get()) * (10 ** asset_decimals)
-
+        total_issued = TotalIssued().get()
+        staked = Staked().get()
+        return total_issued - staked
 
 @api.route('/deficit')
 class Deficit(Resource):
     def get(self):
-        total_issued = TotalIssued()
-        balance = Balance()
-        price = Price()
+        total_issued = TotalIssued().get()
+        balance = Balance().get()
+        price = Price().get()
 
         balance_lock_waves = helpers.get_data_by_key(address=contract_addresses.get('neutrino_contract_address'),
                                                         key='balance_lock_waves').get('value') / (10 ** asset_decimals)
 
-        reserve = balance.get() - balance_lock_waves
-        print(total_issued.get(),reserve,price.get())
-
-        return (total_issued.get() - reserve * price.get())
+        reserve = balance - balance_lock_waves
+        return (total_issued - reserve * price)
 
 
 @api.route('/decimals')
@@ -121,13 +125,13 @@ class LockedForSwap(Resource):
 @api.route('/deficit_per_cent')
 class DeficitPerCent(Resource):
     def get(self):
-        deficit = Deficit()
-        total_issued = TotalIssued()
-        return -1 * (deficit.get() / total_issued.get()) * 100
+        deficit = Deficit().get()
+        total_issued = TotalIssued().get()
+        return -1 * (deficit / total_issued) * 100
 
 
-@api.route('/total_bonds_rest')
-class TotalBondsRest(Resource):
+@api.route('/total_nsbt_rest')
+class TotalNSBTRest(Resource):
     def get(self):
         url = 'https://beta.neutrino.at/api/v1/bonds/usd-nb_usd-n/orders'
 
@@ -140,13 +144,12 @@ class TotalBondsRest(Resource):
 
         return rest_amount
 
-@api.route('/total_bonds_liquidation')
-class TotalBondsLiquidation(Resource):
+@api.route('/total_nsbt_liquidation')
+class TotalNSBTLiquidation(Resource):
     def get(self):
         url = 'https://beta.neutrino.at/api/v1/liquidate/usd-nb_usd-n/orders'
 
         bonds_list = helpers.get_json(url)
-
 
         rest_amount = 0
         for i in bonds_list:
@@ -155,26 +158,6 @@ class TotalBondsLiquidation(Resource):
 
         return rest_amount
 
-# @api.route('/bond_liquidation_price')
-# class BondLiquidationPrice(Resource):
-#     def get(self):
-#         total_issued = TotalIssued()
-#         balance = Balance()
-#         price = Price()
-#
-#         balance_lock_waves = helpers.get_data_by_key(address=contract_addresses.get('neutrino_contract_address'),
-#                                                      key='balance_lock_waves').get('value') / (10 ** asset_decimals)
-#
-#         reserve = balance.get() - balance_lock_waves
-#         price = price.get()
-#
-#         print(total_issued.get(), reserve, price)
-#
-#         while (total_issued.get() < reserve*price):
-#
-#             price += 0.01
-#
-#         return price
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
